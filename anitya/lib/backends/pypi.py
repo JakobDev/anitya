@@ -2,12 +2,10 @@
 
 """
  (c) 2014-2020 - Copyright Red Hat Inc
-
  Authors:
    Pierre-Yves Chibon <pingou@pingoured.fr>
    Ralph Bean <rbean@redhat.com>
    Michal Konecny <mkonecny@redhat.com>
-
 """
 
 import anitya.lib.xml2dict as xml2dict
@@ -29,7 +27,6 @@ class PypiBackend(BaseBackend):
     def get_version(cls, project):
         """Method called to retrieve the latest version of the projects
         provided, project that relies on the backend of this plugin.
-
         :arg Project project: a :class:`anitya.db.models.Project` object whose backend
             corresponds to the current plugin.
         :return: the latest version found upstream
@@ -37,7 +34,6 @@ class PypiBackend(BaseBackend):
         :raise AnityaPluginException: a
             :class:`anitya.lib.exceptions.AnityaPluginException` exception
             when the version cannot be retrieved correctly
-
         """
         url = cls.get_version_url(project)
         last_change = project.get_time_last_created_version()
@@ -61,11 +57,9 @@ class PypiBackend(BaseBackend):
     def get_version_url(cls, project):
         """Method called to retrieve the url used to check for new version
         of the project provided, project that relies on the backend of this plugin.
-
         Attributes:
             project (:obj:`anitya.db.models.Project`): Project object whose backend
                 corresponds to the current plugin.
-
         Returns:
             str: url used for version checking
         """
@@ -78,7 +72,6 @@ class PypiBackend(BaseBackend):
         """Method called to retrieve all the versions (that can be found)
         of the projects provided, project that relies on the backend of
         this plugin.
-
         :arg Project project: a :class:`anitya.db.models.Project` object whose backend
             corresponds to the current plugin.
         :return: a list of all the possible releases found
@@ -86,7 +79,6 @@ class PypiBackend(BaseBackend):
         :raise AnityaPluginException: a
             :class:`anitya.lib.exceptions.AnityaPluginException` exception
             when the versions cannot be retrieved correctly
-
         """
         url = cls.get_version_url(project)
         last_change = project.get_time_last_created_version()
@@ -129,7 +121,6 @@ class PypiBackend(BaseBackend):
     @classmethod
     def check_feed(cls):
         """Return a generator over the latest 40 uploads to PyPI
-
         by querying an RSS feed.
         """
 
@@ -150,5 +141,15 @@ class PypiBackend(BaseBackend):
         for entry in items:
             title = entry["title"]["value"]
             name, version = title.rsplit(None, 1)
-            homepage = "https://pypi.org/project/%s/" % name
+
+            try:
+                req = cls.call_url(f"https://pypi.org/pypi/{name}/json")
+                homepage_data = req.json()
+                if homepage_data["info"]["home_page"] != "":
+                    homepage = homepage_data["info"]["home_page"]
+                else:
+                    homepage = "https://pypi.org/project/%s/" % name
+            except Exception: # pragma: no cover
+                homepage = "https://pypi.org/project/%s/" % name
+
             yield name, homepage, cls.name, version
